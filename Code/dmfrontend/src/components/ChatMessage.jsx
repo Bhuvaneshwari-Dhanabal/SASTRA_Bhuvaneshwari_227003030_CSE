@@ -64,7 +64,7 @@ function ChatMessage({ message, onRegenerate }) {
 
         <div className="min-w-0 flex-1">
           <p className="mb-3 text-sm font-semibold text-gray-300">
-            {isUser ? "You" : "AUTOSAR AI"}
+            {isUser ? "You" : "AutoArch AI"}
           </p>
 
           <div className="break-words text-sm leading-7 text-gray-200">

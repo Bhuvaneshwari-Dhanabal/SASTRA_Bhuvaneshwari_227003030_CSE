@@ -40,9 +40,11 @@ def create_app():
     from app.routes.auth import auth_bp
     from app.routes.documents import documents_bp
     from app.routes.chat import chat_bp
+    from app.routes.evaluations import evaluations_bp
 
 
     app.register_blueprint(chat_bp)
+    app.register_blueprint(evaluations_bp)
 
     app.register_blueprint(
         health_bp

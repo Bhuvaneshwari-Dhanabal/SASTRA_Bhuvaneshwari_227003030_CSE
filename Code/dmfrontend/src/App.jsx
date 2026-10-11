@@ -15,6 +15,7 @@ import Register from "./pages/Register";
 import Chat from "./pages/Chat";
 import KnowledgeBase from "./pages/KnowledgeBase";
 import Settings from "./pages/Settings";
+import EvaluationResults from "./pages/EvaluationResults";
 
 function App() {
   return (
@@ -69,6 +70,15 @@ function App() {
               element={
                 <ProtectedRoute>
                   <Settings />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/evaluation-results"
+              element={
+                <ProtectedRoute>
+                  <EvaluationResults />
                 </ProtectedRoute>
               }
             />

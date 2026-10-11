@@ -255,6 +255,34 @@ ON messages(conversation_id);
 
 CREATE INDEX IF NOT EXISTS idx_messages_user_id
 ON messages(user_id);
+
+CREATE TABLE IF NOT EXISTS evaluation_runs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    conversation_id INTEGER,
+    document_id INTEGER,
+    question TEXT NOT NULL,
+    answer TEXT,
+    citations_json TEXT NOT NULL DEFAULT '[]',
+    retrieved_count INTEGER NOT NULL DEFAULT 0,
+    top_k INTEGER NOT NULL DEFAULT 5,
+    chunking_strategy TEXT NOT NULL DEFAULT 'fixed',
+    embedding_model TEXT NOT NULL DEFAULT 'minilm',
+    generation_model TEXT,
+    status TEXT NOT NULL CHECK (status IN ('completed', 'failed')),
+    review_status TEXT NOT NULL DEFAULT 'not_reviewed',
+    latency_ms REAL NOT NULL DEFAULT 0,
+    error_message TEXT,
+    created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (conversation_id) REFERENCES conversations(id) ON DELETE SET NULL,
+    FOREIGN KEY (document_id) REFERENCES documents(id) ON DELETE SET NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_evaluation_runs_user_created
+ON evaluation_runs(user_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_evaluation_runs_conversation
+ON evaluation_runs(conversation_id, user_id);
             """
         )
 

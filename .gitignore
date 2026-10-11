@@ -48,6 +48,8 @@ tmp/
 # Jupyter
 .ipynb_checkpoints/
 
+
+
 # Runtime audit logs
 Evaluation_Results/audit_logs/
 
@@ -64,4 +66,4 @@ Input_Data/processed/*
 # Runtime audit logs
 Evaluation_Results/audit_logs/*
 
-"C:\Users\achyu\Downloads\AUTOSAR_EXP_LayeredSoftwareArchitecture.pdf"
+"C:\Users\achyu\Downloads\AUTOSAR_EXP_LayeredSoftwareArchitecture.pdf" 

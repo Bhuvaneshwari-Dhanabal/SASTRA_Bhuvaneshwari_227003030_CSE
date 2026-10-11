@@ -1,5 +1,6 @@
 import {
   BookOpen,
+  BarChart3,
   MessageSquare,
   Plus,
   Settings,
@@ -82,6 +83,14 @@ function Sidebar({
           <BookOpen size={18} />
 
           Knowledge Base
+        </button>
+
+        <button
+          onClick={() => onNavigate("/evaluation-results")}
+          className="mb-1 flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-gray-300 hover:bg-gray-800 hover:text-white"
+        >
+          <BarChart3 size={18} />
+          Evaluation Results
         </button>
       </div>
 

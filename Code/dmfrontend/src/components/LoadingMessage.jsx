@@ -11,7 +11,7 @@ function LoadingMessage() {
 
         <div>
           <p className="mb-3 text-sm font-semibold text-gray-300">
-            AUTOSAR AI
+            AutoArch AI
           </p>
 
           <div className="flex gap-1.5">

@@ -52,7 +52,7 @@ function Login() {
           </div>
 
           <h1 className="text-3xl font-bold text-white">
-            AUTOSAR AI
+            AutoArch AI
           </h1>
 
           <p className="mt-2 text-sm text-gray-400">

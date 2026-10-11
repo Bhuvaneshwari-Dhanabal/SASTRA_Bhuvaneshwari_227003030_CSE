@@ -169,6 +169,7 @@ const handleSend = async () => {
 
     const response = await api.post("/chat/ask", {
       document_id: Number(selectedDocumentId),
+      conversation_id: Number(conversationId),
       question,
       top_k: 5,
       chunking_strategy: "fixed",
@@ -305,6 +306,7 @@ const handleSend = async () => {
   try {
     const response = await api.post("/chat/ask", {
       document_id: Number(selectedDocumentId),
+      conversation_id: activeChat == null ? undefined : Number(activeChat),
       question: lastQuestion,
       top_k: 5,
       chunking_strategy: "fixed",
