@@ -1,0 +1,1902 @@
+Applied Intelligence           (2026) 56:15 
+https://doi.org/10.1007/s10489-025-06987-0
+diseases. With the development and increasing demand for 
+medical image analysis, high-precision and robust segmen­
+tation has become increasingly vital.
+In recent years, with the rapid development of deep 
+learning technology, significant progress has been made in 
+the field of medical image segmentation. Since the introduc­
+tion of U-Net [2], traditional convolutional neural network 
+(CNN) have rapidly become the mainstream method for 
+medical image segmentation [3–5]. These methods utilize 
+an encoder-decoder structure and skip connections, effec­
+tively capture local detail features and performing excel­
+lently in medical image segmentation tasks. However, 
+traditional CNN models [6–9] have limitations in handling 
+long-range dependencies and generally suffer from insuf­
+ficient information interaction between channels, which 
+somewhat restricts their segmentation performance.
+To overcome the limitations of traditional CNN mod­
+els, various attention mechanisms have emerged [10–13] 
+following the significant achievements of Transformers 
+[14] in the NLP field, leading to the rise of vision Trans­
+former-based [15] models in medical image segmentation 
+[16–22]. Transformer-based models can model long-range 
+1  Introduction
+Medical image segmentation plays a crucial role in com­
+puter-aided diagnosis and treatment planning. Research 
+in this field uses techniques such as deep learning [1] to 
+classify individual pixels in images and separate specific 
+organs and pathological regions to generate segmentation 
+maps, thereby helping doctors better diagnose and analyze 
+	
+ Yang Zhang
+2024210516133@stu.cqnu.edu.cn; 3378830682@qq.com
+Hao Zhai
+zhaihao@cqnu.edu.cn
+Lei Yu
+ylcqnu@163.com
+Ping Yu
+pingyanny@163.com
+Yuanzhe Zhang
+2024110516018@stu.cqnu.edu.cn
+1	
+School of Computer and Information Science, Chongqing 
+Normal University, Chongqing 401331, China
+Abstract
+In the field of medical image segmentation, techniques based on convolutional neural networks and Transformers have 
+been extensively developed. However, the current mainstream methods for medical image segmentation are mainly based 
+on standard convolutions or depthwise separable convolutions, which essentially process on fixed and ordered feature 
+channels. This inherent constraint limits the model’s ability to learn cross-channel contextual relationships. To address 
+these challenges, we introduce a novel architecture strategy with channel shuffle as the core operation and the Multi-Scale 
+Dynamic Channel Shuffle Attention (MS-DCSA) mechanism. Our proposed mechanism actively disrupts the fixed order of 
+channels to achieve more effective cross-channel information exchange, promoting the model to learn richer global-local 
+feature representations. Experiments on the Synapse, ACDC, CVC-ClinicDB, and ISIC-2017 datasets have shown that 
+MS-DCSNet achieves excellent segmentation accuracy in various types of medical image segmentation with average Dice 
+scores of 84.22%, 92.48%, 88.70%, and 96.45%. These results not only significantly surpass most existing methods, but 
+also demonstrate the powerful segmentation ability and excellent generalization performance of MS-DCSNet.
+Keywords  Medical image segmentation · Multi-scale feature interaction · Dynamic channel shuffle · Multi-scale 
+channel attention · Fully convolutional network
+Received: 1 July 2025 / Accepted: 27 October 2025
+© The Author(s), under exclusive licence to Springer Science+Business Media, LLC, part of Springer Nature 2025
+MS-DCSNet: Global-local feature interaction and multi-scale dynamic 
+channel shuffle attention for medical image segmentation
+Hao Zhai1 · Yang Zhang1
+ · Lei Yu1 · Ping Yu1 · Yuanzhe Zhang1
+1 3
+
+H. Zhai et al.
+dependencies through attention mechanisms, capturing 
+global contextual information. However, these models often 
+require stacking multiple layers of Transformer modules to 
+enhance their ability to capture global information, which 
+not only increases the difficulty of hyperparameter tuning 
+but may also lead to insufficient extraction of local detail 
+features, resulting in the loss of features in small target areas 
+and difficulties in capturing complex region features.
+Recently, a series of models based on Mamba [23–26] 
+have demonstrated strong performance in medical image 
+segmentation tasks. The Mamba model can efficiently han­
+dle long sequence data through a State Space Model (SSM) 
+mechanism while maintaining linear computational com­
+plexity and integrating feature information from multiple 
+directions. However, the application of Mamba models in 
+the field of medical image segmentation is still in exploratory 
+stages, facing certain limitations and challenges in handling 
+channel information interaction and multi-scale information 
+fusion. Its potential in handling image segmentation tasks, 
+especially in multi-scale feature extraction and complex 
+segmentation environments for medical images, has yet to 
+be fully explored [27, 28].
+For the existing feature extraction methods in the field, 
+traditional convolution and grouped convolution are mainly 
+used. Traditional convolution (Fig. 1(a)) can effectively 
+extract local features but struggles to model long-range 
+dependencies and has a high computational burden. Group 
+Convolution (Fig. 1(b)) sacrifices performance to reduce 
+computational load, but the information exchange between 
+different groups is limited, affecting the flow of informa­
+tion. Linear Projection (Fig. 1(c)) is widely used, but as 
+the dimensions deepen, the computational cost during pro­
+cessing increases, and the projected feature representation 
+relies on the original features, which may lead to the loss of 
+related information after dimension splitting, thus affecting 
+the model’s expressive capability and segmentation accu­
+racy. Therefore, how to achieve interaction between multi­
+ple groups of information with minimal computational cost 
+(a)
+(b)
+(c)
+(d)
+Fig. 1  Comparison diagram of traditional convolution, group convo­
+lution, linear projection, and the introduction of channel shuffle.(a) 
+Group convolution. (b) Standard convolution. (c) Traditional feature 
+extraction mode combining linear projection and convolution. After 
+linear projection, the inherent grouping structure of feature channels 
+[T1, T2, T3, T4, T5, T6] remains unchanged, resulting in subsequent 
+convolutions still only being performed within the original subset ([T1, 
+T2], [T3, T4], [T5, T6]), and inter group barriers still exist. (d) The 
+change diagram after applying channel shuffle. The channel shuffle 
+operation shuffles the channel sequence. This enables each new con­
+volution group ([T1, T3], [T5, T2], [T4, T6]) to simultaneously receive 
+channels from multiple original feature groups, breaking inter group 
+isolation and achieving efficient cross group information exchange
+ 
+1 3
+   15 
+ 
+Page 2 of 16
+
+MS-DCSNet: Global-local feature interaction and multi-scale dynamic channel shuffle attention for medical…
+has become a key problem to be solved. Based on this issue, 
+we have focused on the classic network model ShuffleNet 
+[29] in the mobile field and introduced channel shuffle into 
+the medical segmentation field to attempt to solve this prob­
+lem. As shown in Fig. 1(d), assuming the feature informa­
+tion is [[T1, T2], [T3, T4]], group convolution and standard 
+convolution can only effectively focus on locally adjacent 
+feature information (such as T1 with T2, T3 with T4), while 
+channel shuffle technology enriches the diversity of features 
+in convolutional and linear layers by shuffling the origi­
+nal channel order and enabling cross-group information 
+exchange (for example, rearranging [[T1, T2], [T3, T4]] to 
+[[T1, T3], [T2, T4]]), thereby enhancing the model’s expres­
+sive capability while maintaining computational efficiency. 
+Therefore, we believe that this technology has significant 
+development potential in medical image segmentation tasks, 
+especially in better integrating feature information at differ­
+ent levels when handling complex tasks, thereby improving 
+the model’s accuracy in recognizing target areas.
+To address the issues above, we propose MS-DCSNet, 
+a global-guided fully convolutional U-Net based on multi-
+scale feature fusion and dynamic channel shuffle technol­
+ogy, aiming to dynamically integrate channel information 
+through channel shuffle and multi-scale fusion techniques, 
+significantly enhancing the information interaction capabil­
+ity between channels, and employs a combination of fully 
+convolutional and global guidance techniques to achieve 
+efficient fusion of global and local features. More spe­
+cifically, MS-DCSNet utilizes multi-scale convolutions to 
+extract rich feature representations and combines dynamic 
+channel shuffle and multi-scale channel attention techniques 
+to achieve interactive collaboration of global and local fea­
+tures in both spatial and channel dimensions. This not only 
+enhances the information interaction capability between 
+channels but also enables fine-grained modeling of spatial 
+features, effectively improving the model’s performance in 
+complex medical image segmentation tasks. The main con­
+tributions of this paper are as follows:
+	
+●
+We propose a novel fully convolutional UNet combin­
+ing multi-scale feature fusion and dynamic channel 
+shuffle techniques (MS-DCSNet). This network can ef­
+fectively addresses the low feature channel utilization in 
+traditional methods while significantly enhancing fea­
+ture representation capabilities, offering a new strategy 
+for medical image segmentation.
+	
+●
+We have designed a global local interactive multi-scale 
+feature extraction module Channel Shuffle-Based Multi-
+Scale Feature Fusion Convolution Block (CSMS-FE 
+block). It utilizes the dynamic channel shuffle mecha­
+nism to disrupt the fixed distribution of original fea­
+ture channels, and achieves efficient interaction and 
+deep fusion of feature information through multi-scale 
+convolution.
+	
+●
+We introduced a global-guided Multi-Scale Dynamic 
+Channel Shuffle Attention (MS-DCSA) mechanism. 
+This mechanism reorganizes and arranges feature in­
+formation across multiple channel domains, and uses 
+multi-scale convolution to extract richer out of group 
+features during the middle process, enabling the model 
+to integrate global contextual information and predict 
+results more accurately.
+	
+●
+Extensive experiments were conducted on multiple 
+publicly available medical image segmentation datasets. 
+The results show that MS-DCSNet performs excellently 
+in various segmentation tasks, particularly in complex 
+scene segmentation tasks, fully validating the effective­
+ness and advancements of MS-DCSNet.
+The remainder of this paper is organized as follows: Sec­
+tion 2 reviews related research work, focusing on the devel­
+opment and current status of medical image segmentation, 
+multi-scale feature fusion, and channel shuffle techniques. 
+Section 3 elaborates on the proposed method, including the 
+network architecture design and the implementation tech­
+niques of multi-scale feature fusion combined with multi-
+scale channel attention and channel shuffle mechanisms. 
+Section 4 presents the experimental setup and analyzes and 
+discusses the experimental results. Section 5 summarizes 
+the main contributions of this paper and looks forward to 
+future research directions.
+2  Related work
+2.1  Medical image segmentation
+Traditional U-shaped convolutional neural networks have 
+been widely used in the field of medical image segmentation 
+due to their advanced and effective design, which can be 
+traced back to the introduction of U-Net [2]. The symmetric 
+U-shaped structure consists of an encoder and a decoder, 
+where the encoder is responsible for gradually extracting 
+features and reducing spatial dimensions, while the decoder 
+is responsible for gradually restoring spatial resolution 
+and accurately locating the target segmentation area. Skip 
+connections are used to preserve the original feature maps 
+during the encoder’s downsampling process, combining 
+them end-to-end with the decoder’s output to retain spatial 
+detail information. This design concept of U-Net has laid 
+an important foundation for the field of medical image seg­
+mentation and has led to numerous subsequent improve­
+ments. For example, ResU-Net [30] incorporates residual 
+connections from ResNet [8] into the U-shaped structure, 
+1 3
+Page 3 of 16 
+   15 
+
+H. Zhai et al.
+2.2  Approaches for medical feature extraction
+In recent years, multi-scale feature extraction technology 
+has become a research hotspot in the field of computer 
+vision for improving feature extraction capabilities. To 
+improve the accuracy of image segmentation, researchers 
+have proposed various innovative multi-scale feature fusion 
+methods. For instance, CrossVit [45] introduces multi-scale 
+features into the Vision Transformer, proposing a dual-
+branch cross-attention mechanism that can simultaneously 
+capture local details and global context information, signifi­
+cantly enhancing the model’s ability to extract features from 
+multi-scale targets. Atrous Spatial Pyramid Pooling (ASPP) 
+[46] employs a multi-sampling rate dilated convolution 
+strategy to effectively capture multi-scale contextual infor­
+mation. Meanwhile, DeepLabv3+ [47] further enhances the 
+model’s ability to fuse multi-scale features by improving the 
+ASPP module and introducing a decoder structure. Feature 
+Pyramid Network (FPN) [48] significantly enhances the 
+model’s detection capability for multi-scale targets by con­
+structing a bottom-up feature pyramid structure. Pyramid 
+Medical Transformer [49] combines the pyramid structure 
+with Transformers, significantly improving the accuracy of 
+medical image segmentation through multi-scale feature 
+encoding and decoding mechanisms. Additionally, transfer 
+learning [50] has gradually become a widely used technol­
+ogy in the field of medical imaging analysis. For example, 
+Sheeba Armoogum et al. [51] proposed the method for cre­
+ating classification models based on convolutional neural 
+network deep learning and transfer learning, which achieved 
+excellent accuracy on the breast cancer (BUSI) dataset [52], 
+demonstrating the effectiveness of combining transfer learn­
+ing with deep learning. HiFormer [53] proposed a hierar­
+chical multi-scale feature fusion framework and applied 
+the encoder to ImageNet [54] for pre-training, significantly 
+improving segmentation performance. These methods have 
+laid a solid foundation for subsequent research and become 
+the main way to enhance feature extraction capabilities in 
+the field of medical imaging analysis.
+2.3  Research on channel shuffle
+To explore more methods for enhancing feature extraction 
+and representation, ShuffleNet [29] first proposed channel 
+shuffle and applied it to mobile devices. The core mecha­
+nism is to shuffle and reassemble the fixed arrangement of 
+feature information in the channel according to certain rules 
+before convolution operation, so that the model can learn 
+more rich and diverse feature representations from differ­
+ent sources within a limited receptive field. ShuffleNetV2 
+[55] further optimizes the channel shuffle, proposing a more 
+efficient feature fusion strategy that reduces memory access 
+mitigating the problem of feature information loss through 
+these connections and improving the network’s segmenta­
+tion capability. ResECA-U-Net [31] innovatively integrates 
+U-Net with ResNet34, effectively solving key challenges 
+in radiation therapy for gastrointestinal cancer (GI) and 
+achieving precise segmentation of organ regions. 3D U-Net 
+[32] transforms traditional 2D image segmentation meth­
+ods into 3D image segmentation through three-dimensional 
+convolution operations, providing a new solution for image 
+segmentation and significantly improving segmentation 
+accuracy. However, these methods still face the issue of 
+limited receptive fields and lack the ability to model global 
+dependencies.
+Since Dosovitskiy et al. [15] proposed the Vision Trans­
+former and used self-attention mechanisms for long-range 
+correlation modeling, the limitations of the receptive fields 
+in convolutional neural networks have been improved and 
+applied in the field of medical image segmentation [17]. Due 
+to the quadratic complexity of the self-attention mechanism 
+in Transformers, subsequent researchers have attempted to 
+optimize this aspect, proposing numerous pure Transformer 
+models or variants that combine Transformers with U-Net 
+[23, 33–36], significantly reducing computational complex­
+ity and enhancing overall model performance. Additionally, 
+sequence modeling methods based on linear attention mech­
+anisms, such as Mamba [37] and RWKV [38], have recently 
+become a research focus and have been applied in computer 
+vision and medical image segmentation [23, 24, 39]. For 
+instance, U-Mamba [40] and SegMamba [41] integrate 
+CNN and SSM modules, extracting local features through 
+convolutional layers and combining them with long-range 
+correlation modeling provided by SSM, demonstrating out­
+standing performance in tasks such as organ segmentation, 
+instrument segmentation, and cell segmentation. RWKV-
+UNet [42] innovatively combines the RWKV (Receptance 
+Weighted Key Value) structure with the U-Net structure, 
+enhancing the model’s ability to capture long-range depen­
+dencies and understand global context. These models not 
+only achieve efficient linear complexity calculations but 
+also capture long-range dependencies with high precision, 
+fully extracting contextual information while maintaining 
+low computational overhead, making them suitable for most 
+computer vision tasks [43, 44]. Although models based on 
+Transformer, Mamba, and RWKV architectures can effec­
+tively model long-range correlations, the Transformer 
+architecture often relies on multiple stacked computations 
+to extract global features, while Mamba and RWKV archi­
+tectures are still in an exploratory stage. Therefore, in this 
+paper, we use a fully convolutional network architecture to 
+explore the dynamic guided interaction between global and 
+local features in medical image segmentation tasks, achiev­
+ing efficient segmentation in complex environments.
+1 3
+   15 
+ 
+Page 4 of 16
+
+MS-DCSNet: Global-local feature interaction and multi-scale dynamic channel shuffle attention for medical…
+3  Method
+3.1  Overall architecture
+The overall architecture of the proposed method is shown in 
+Fig. 2. MS-DCSNet is based on U-shaped structure, consist­
+ing of an encoder, a decoder, and skip connections, with a 
+four-level structure. Specifically, the ConvStem (Fig. 2(f)) 
+is responsible for changing the dimensions of the input fea­
+ture map, while the encoder (Fig. 2(b)) and the decoder (Fig. 
+2(c)) are responsible for adjusting the spatial resolution of 
+the input feature map. Following the process by ConvStem, 
+the dimensions of the feature maps obtained by each level of 
+the encoder and decoder in the four-level structure are [48, 
+96, 192, 384], and the channel shuffle strategy is set to [1, 2, 
+4, 8] by default. This allows the feature information in the 
+channels to be dynamically adjusted with the change of spa­
+tial resolution, and achieves dynamic interaction between 
+channel information to the maximum extent during dimen­
+sion transformation and feature extraction.
+costs, achieving higher inference speeds on mobile devices. 
+Inspired by ShuffleNet, Wang et al. [10] proposed a more 
+efficient channel attention mechanism that avoids the use 
+of fully connected layers, adaptively adjusting the weights 
+of feature channels and significantly reducing computa­
+tional costs. In the field of medical image segmentation, 
+Medmamba [56] and PVT-EMCAD-B2 [57] utilize channel 
+shuffle technology and combine it with Mamba and multi-
+scale convolution modules to effectively enhance the infor­
+mation exchange ability between feature map channels. 
+However, these medical methods only use channel shuffle 
+technology as a component to improve performance, and 
+have not yet analyzed its working principle and deeply inte­
+grated it with the model structure. Based on this finding, 
+we believe that this technology has significant development 
+potential in medical image segmentation tasks, especially 
+in better integrating different levels of feature information 
+when handling complex tasks. The introduction of this 
+method will provide new ideas and directions for the devel­
+opment of multi-scale feature extraction technology.
+ConvStem
+ConvStem
+ConvStem
+Multi-Scale Dynamic Channel Shuffle Attention Module
+(MS-DCSA Module)
+Element-wise
+addition
+Element-wise
+multiplication
+Channel 
+concatenation
+Sigmoid activation
+function
+Channel Shuffle Multi-Scale Feature Extraction Block
+(CSMS-FE Block)
+Channel Shuffle Multi-Scale Feature Extraction Block
+(CSMS-FE Block)
+(a) MS-DCSNet
+(b) CSMS-Encoder
+(b) CSMS-Encoder
+(d) CSMS-FE Block
+Channel Shuffle Multi-Scale Feature Restore Module
+Channel Shuffle Multi-Scale Feature Restore Module
+(c) CSMS-Decoder
+(e) MS-DCSA Module
+(f) ConvStem
+Channel Shuffle Multi-Scale Feature Extraction Module
+Overall Structure
+Fig. 2  Overall architecture of MS-DCSNet. (a) Flowchart of the mod­
+ule implementation of MS-DCSNet, (b) Global-local feature interac­
+tive encoder CSMS-Encoder composed of multi-scale convolution 
+and average pooling, (c) Global-local information interactive decoder 
+CSMS-Decoder that combines MS-DCSA with multi-scale convolu­
+tion, (d) channel shuffle-based multi-scale feature fusion convolution 
+block, (e) Global-guided Multi-Scale Dynamic Channel Shuffle Atten­
+tion module, (f) Dual convolution block for dimension transformation 
+and feature extraction during sampling
+ 
+1 3
+Page 5 of 16 
+   15 
+
+H. Zhai et al.
+uses 3 × 3 average pooling and concatenates multi-scale 
+fused features to extract features, aiming to suppress noise 
+interference and local inconsistencies caused by multi-scale 
+feature fusion. Finally, the CSMS-Encoder employs 2 × 2 
+max pooling to reduce the resolution of the input image. The 
+entire process can be described as follows:
+Fi1 = CS(Conv1×1BNReLU(Fi)),
+(2)
+F
+′
+i1 = Add(Conv5×5(Fi1), Conv3×3(Fi1), Conv1×1(Fi1)),
+(3)
+F
+′
+i2 = AvgPoo3×3(Fi),
+(4)
+F
+′
+i = MaxPool2×2(Conv1×1BNReLU(Concat(F
+′
+i1, F
+′
+i2))),
+(5)
+where CS(·) represents ChannelShuffle, BN(·) represents 
+BatchNorm, Convn×n(·)represents a convolution with the 
+kernel size of n, Concat(·) represents the concatenation of 
+two feature maps along a certain dimension, ReLU(·) rep­
+resents the activation function LeakyReLU. Add(·) repre­
+sents additive fusion of feature maps.
+3.3  MS-DCSA
+The calculation process of MS-DCSA is shown in Fig. 3. 
+Specifically, MS-DCSA has two branches. The first branch 
+draws on the idea of the multi-head self-attention mecha­
+nism from the Transformer, performing a linear project 
+on the input features and using the first channel shuffle to 
+disrupt the original feature order, resulting in multiple seg­
+mented matrices. Subsequently, in order to fully utilize the 
+rearranged feature information, we used convolution kernel 
+sizes of 3 × 3, 5 × 5 and 7 × 7 to extract and concat the 
+rearranged channel features at multiple scales, and then used 
+channel shuffle again to rearrange the feature order, provid­
+ing richer feature representations for subsequent network 
+learning. Then, a linear project is used to convert the dimen­
+sions back to the state at input, and a final channel shuffle is 
+performed to fully enhance the flow of feature information, 
+3.2  CSMS-encoder
+Most Transformer-based network structures [16, 17, 33, 
+53] use Patch Embedding technology to divide multiple 
+image slices and reduce the dimensions to 2C(C = 48). 
+However, this method often leads to a rapid decrease in the 
+dimensions of the feature map, resulting in the loss of key 
+information. To address this issue, we propose the CSMS-
+Encoder to slow down the rate of dimension reduction of the 
+feature map. This encoder performs dimension transforma­
+tion and feature extraction through the ConvStem convo­
+lution block. Assuming the dimension of the input image 
+is F0 ∈ R(H×W ×inputchannels). After the first dimension 
+transformation, the dimension becomes R(H×W ×C), and 
+starting from C, it gradually transforms the dimension to 
+16C through ConvStem, thereby reducing the loss of key 
+information during downsampling while maintaining the 
+multi-scale feature expression capability and enhanc­
+ing the model’s feature extraction ability. The output fea­
+tures at each dimension reduction stage can be set as Fi, 
+i ∈{1, 2, 3, 4, 5}, which can be obtained using the follow­
+ing formula:
+Fi = ConvStem(ConvStem(Fi−1)),
+(1)
+where Fi ∈R(
+H
+2(i−1) ×
+W
+2(i−1) ×Ci), Ci ∈{48, 96, 192, 384, 768}.
+The downsampling part of the encoder mainly uses the 
+Channel Shuffle Multi-Scale Feature Extraction Block 
+(CSMS-FE Block) for information interaction and multi-
+scale feature extraction following channel shuffle, as shown 
+in Fig. 2(d). Specifically, after the input features undergo 
+dimensional transformation through ConvStem, the features 
+firstly processd by dynamic channel shuffle to disrupt the 
+arrangement of features. Then, the features are processed 
+with multi-scale convolution operations of 1 × 1, 3 × 3, 
+and 5 × 5, which are fused with the original image through 
+residual connections to fully enhance the information inter­
+action capability between different channels and extract 
+rich local features. Additionally, the CSMS-Encoder also 
+Channel Shuffle
+Element-Wise Multiplication
+Sigmoid Activate Function
+Feature Concat
+Channel Shuffle
+Element-Wise Multiplication
+Sigmoid Activate Function
+Feature Concat
+Smoothing and Suppression
+Generate Weights
+Multi-Scale Convolution
+Channel Shuffle
+Adaptive AvgPool
+Channel Shuffle
+Element-Wise Multiplication
+Sigmoid Activate Function
+Feature Concat
+Smoothing and Suppression
+Generate Weights
+Multi-Scale Convolution
+Channel Shuffle
+Adaptive AvgPool
+Fig. 3  Schematic diagram of Global-guided MS-DCSA mechanism
+ 
+1 3
+   15 
+ 
+Page 6 of 16
+
+MS-DCSNet: Global-local feature interaction and multi-scale dynamic channel shuffle attention for medical…
+networks but also effectively preserves the edge details of 
+the target. By transmitting the features extracted during the 
+encoding phase through the skip connections, the decoder 
+can more accurately restore the structural information of the 
+target region, thereby enhancing the accuracy of medical 
+image segmentation.
+4  Experiments
+4.1  Experimental setup
+4.1.1  Datasets
+We conducted experiments on four different datasets: Syn­
+apse [58], ACDC [59], ISIC2017 [60], and CVC-ClinicDB 
+[61]. The Synapse dataset contains 3,779 axial abdominal 
+clinical CT images from 30 abdominal CT scans, with each 
+image containing 8 organs: Aorta, Gallbladder (GB), Left 
+Kidney (KL), Right Kidney (KR), Liver, Pancreas (PC), 
+Spleen (SP), and Stomach (SM). Based on previous work 
+[17, 33], this dataset will be divided into training and test­
+ing sets in a 6:4 ratio, and accuracy will be evaluated using 
+the average Dice Similarity Coefficient (DSC) and the aver­
+age 95% Hausdorff Distance (HD95). The ACDC dataset 
+consists of 100 MRI images of heart scans, each contain­
+ing three organs: Right Ventricle (RV), Myocardium (Myo), 
+and Left Ventricle (LV). Following previous work [17, 33], 
+we divide this dataset into training, validation, and testing 
+sets in a 7:1:2 ratio, using DSC for performance evalua­
+tion. ISIC2017 is a large-scale dermoscopic image classi­
+fication dataset released by the International Skin Imaging 
+Collaboration, containing 2,750 images, with 2,000 in the 
+training set, 150 in the validation set, and 600 in the test­
+ing set. In our experiments, we used 2,000 images from 
+the training set, with 1,250 for training, 150 for validation, 
+and 600 for testing. We evaluated prediction accuracy in 
+this dataset using DSC, Sensitivity (Sen), Specificity (Spe), 
+and Accuracy (Acc). CVC-ClinicDB is a biomedical data­
+set extracted from 31 colonoscopy videos collected by the 
+Barcelona Hospital Clinic, containing 612 images with a 
+resolution of 384× 288. We divided the dataset into train­
+ing, validation, and testing sets in a 7:1:2 ratio, using DSC, 
+Intersection over Union (IoU), Precision (Pre), and Recall 
+(Rec) to evaluate segmentation performance.
+4.1.2  Implementation details
+We set the input image size to 224×224 for Synapse, 
+ACDC, and CVC-ClinicDB, and to 256×256 for ISIC2017. 
+All datasets utilized data augmentation techniques, includ­
+ing but not limited to random padding and random flipping. 
+resulting in the final feature output. The second branch uses 
+global average pooling and multiplies it element-wise with 
+the output of the first branch to obtain contextual informa­
+tion for different pixel positions. This is then passed through 
+a Sigmoid activation function to further enhance the weight 
+of important areas and suppress irrelevant information. This 
+process helps the model to accurately focus on the details 
+of the target area during feature recovery, improving the 
+accuracy of image segmentation. Finally, the decoder uses 
+a 2 × 2 transposed convolution to restore the image reso­
+lution. Assuming the input feature map is represented, this 
+process can be expressed as follows:
+T1 = AdaptiveAvgPool(T),
+(6)
+T2 = CS(LN(T)),
+(7)
+W1, W2, W3 = Split(T2),
+(8)
+W
+′
+1 = Conv7×7(W1), W
+′
+2 = Conv5×5(W2), W
+′
+3 = Conv3×3(W3),
+(9)
+T2 = CS(LN(CS(Concat(W
+′
+1, W
+′
+2, W
+′
+3)))),
+(10)
+T
+′ = δ(T2 · T1),
+(11)
+where LN(·) represents LinearProject, a · b represents 
+element-wise multiplication between two matrices, Split(·) 
+represents evenly splitting the number of channels in the 
+feature map, δ(·) represents Sigmoid activation function, 
+AdaptiveAvgPool(·) represents adaptive global average 
+pooling.
+This upsampling method enhances the model’s abil­
+ity to effectively perceive multi-scale features effectively 
+while maintaining linear computational complexity through 
+channel shuffle, multi-scale feature extraction, and adaptive 
+channel attention calculation.
+3.4  CSMS-decoder
+The design principles of the CSMS-Decoder are fundamen­
+tally consistent with those of the CSMS-Encoder to ensure 
+consistency in feature transmission. This helps to reduce 
+information loss during the decoding process, allowing the 
+decoder to fully utilize the multi-scale features extracted by 
+the encoder. Unlike the encoder, the decoder employs our 
+proposed MS-DCSA, which enables it to more effectively 
+locate and enhance important features, thereby improv­
+ing the accuracy of image segmentation. Additionally, we 
+incorporate four layers of skip connections in the decoder 
+to fully integrate feature information from different levels. 
+This not only alleviates the issue of information loss in deep 
+1 3
+Page 7 of 16 
+   15 
+
+H. Zhai et al.
+4.2  Comparative experiments
+4.2.1  Synapse
+As shown in Table 2, our proposed network structure 
+achieved excellent results on the Synapse dataset, achiev­
+ing a average DSC of 84.22% and an HD95 of 19.24mm. 
+It is noteworthy that MS-DCSNet not only achieved high-
+precision segmentation for most organs but also showed 
+particularly significant results in the segmentation of the 
+Pancreas and Gallbladder. Specifically, the DSC of the Gall­
+bladder improved by 0.92% compared to AiA-UNet, while 
+the DSC of the Pancreas was 1.22% higher than RWKV-
+UNet, demonstrating strong competitiveness. Also, it is 
+worth mentioning that the smaller model, MS-DCSNet-T, 
+also achieves good results. The multi-organ segmentation 
+scenario of the Synapse dataset is characterized by rich fea­
+tures and complex tasks, and MS-DCSNet can achieve more 
+precise segmentation in such complex scenarios, indicating 
+its effective feature representation capabilities in challeng­
+ing segmentation environments.
+The loss functions used were Cross Entropy Loss (CE 
+Loss) and Dice Loss. All experiments were conducted on 
+an Nvidia GeForce RTX 4090 GPU with 24GB of memory, 
+and detailed experimental parameter settings can be found 
+in Table 1.
+4.1.3  Comparison methods
+We use methods based on UNet, Transformer, and Mamba 
+and RWKV as comparison methods. Specifically, the UNet-
+based methods are U-Net [2], R50 U-Net [2, 8], R50 Att-
+UNet [8, 62], PVT-EMCAD-B2 [57] and AiA-UNet [63]. 
+Both pure Transformer and hybrid CNN-Transformer meth­
+ods are categorized as the Tranformer-based type, which 
+includes MISSFormer [16], TransUNet [17], CSWin-UNet 
+[18], DAE-Former [19], SwinUNet [33], MT-UNet [34], 
+HiFormer-B [53], PVT-CASCADE [64] and TransCAS­
+CADE [64]. The methods based on Mamba and RWKV 
+include VM-UNet [23], Swin-Umamba [24], and RWKV-
+UNet [42].
+Table 1  Experimental Hyperparameter Settings
+Dataset
+Epoch
+Batch_size
+Learning_rate
+Weight_decay
+Optimizer
+CE:Dice
+Synapse [58]
+600
+16
+1e-3
+1e-4
+AdamW
+0.5:0.5
+ACDC [59]
+120
+12
+1e-3
+1e-4
+AdamW
+0.5:0.5
+ISIC2017 [60]
+80
+12
+1e-4
+1e-4
+AdamW
+0.5:1.0
+CVC-ClinicDB [61]
+300
+24
+5e-3
+1e-4
+AdamW
+1.0:0.5
+All experimental parameters were set through early pre-experiments to determine the optimal training environment for each task
+Table 2  Comparison experiment results on the Synapse dataset
+Method
+DSC(%)
+HD95(mm)
+Aorta
+GB
+LK
+RK
+Liver
+PC
+SP
+SM
+U-Net [2]
+76.85
+39.70
+89.07
+69.72
+77.77
+68.60
+93.43
+53.98
+86.67
+75.58
+R50 U-Net [2, 8]
+74.68
+36.87
+87.74
+63.66
+80.60
+78.19
+93.74
+56.90
+85.87
+74.16
+R50 Att-UNet [8, 62]
+75.57
+36.97
+55.92
+63.91
+79.20
+72.71
+93.56
+49.37
+87.19
+74.95
+TransUNet [17]
+77.48
+31.69
+87.23
+63.16
+81.87
+77.02
+94.08
+55.86
+85.08
+75.62
+SwinUNet [33]
+79.13
+21.55
+85.47
+66.53
+83.28
+79.61
+94.29
+56.58
+90.66
+76.60
+MISSFormer [16]
+81.96
+18.20
+86.99
+68.65
+85.21
+82.00
+94.41
+65.67
+91.92
+80.81
+MT-UNet [34]
+78.59
+26.59
+87.92
+64.99
+81.47
+77.29
+93.06
+59.46
+87.75
+76.81
+DAE-Former [19]
+82.63
+16.39
+87.84
+71.65
+87.66
+82.39
+95.08
+63.93
+91.82
+80.77
+CSWin-UNet [18]
+81.12
+18.86
+87.13
+67.85
+83.51
+78.53
+95.23
+65.94
+89.05
+81.74
+HiFormer-B [53]
+80.39
+86.21
+65.69
+85.23
+79.77
+94.61
+59.52
+90.99
+81.08
+PVT-CASCADE [64]
+81.06
+20.23
+83.01
+70.59
+82.23
+80.37
+94.08
+64.43
+90.10
+83.69
+TransCASCADE [64]
+82.68
+17.34
+86.63
+68.48
+94.43
+65.33
+90.79
+83.52
+VM-UNet [23]
+81.08
+19.21
+86.40
+69.41
+86.16
+82.76
+94.17
+58.80
+89.51
+81.40
+Swin-Umamba [24]
+82.26
+19.51
+86.32
+70.77
+83.66
+81.60
+95.23
+69.36
+89.95
+81.14
+RWKV-UNet [42]
+15.70
+68.94
+87.63
+84.07
+90.95
+PVT-EMCAD-B2 [57]
+83.63
+88.14
+68.87
+68.51
+AiA-UNet [63]
+82.88
+-
+87.77
+84.16
+82.39
+94.98
+65.65
+80.99
+MS-DCSNet
+19.24
+86.22
+83.17
+94.89
+90.78
+83.69
+MS-DCSNet-T
+82.06
+26.70
+88.58
+70.62
+84.24
+80.50
+94.72
+68.11
+88.79
+80.94
+(
+ represents the best results, 
+ represents the second-best results). - means missing data from the sources. MS-DCSNet-T represents a 
+lightweight version of MS-DCSNet with reduced depth. The results of MS-DCSNet and MS-DCSNet-T are averaged over five runs
+1 3
+   15 
+ 
+Page 8 of 16
+
+MS-DCSNet: Global-local feature interaction and multi-scale dynamic channel shuffle attention for medical…
+MS-DCSNet is comparable to state-of-the-art methods pro­
+posed in recent years such as CSWin-UNet, RWKV-UNet, 
+and PVT-EMCAD-B2. Also, MS-DCSNet-T surpasses 
+most existing methods, with the characteristics of being 
+lightweight and efficient. These results indicate that MS-
+DCSNet not only excels in multi-organ segmentation tasks 
+but also demonstrates significant competitiveness in binary 
+segmentation tasks.
+4.2.4  Qualitative analysis
+The qualitative experimental results of MS-DCSNet on 
+multiple datasets are shown in Figs. 4, 5, 6, and 7. From the 
+qualitative results, it can be seen that MS-DCSNet exhib­
+its significant stability and effectiveness in complex multi-
+organ segmentation environments, achieving more efficient 
+and accurate segmentation. This proves that our proposed 
+model is effective in complex segmentation environments 
+and can enhance the information feature interaction abil­
+ity under such conditions. At the same time, our proposed 
+model also exhibits more continuous boundaries and higher 
+accuracy in binary segmentation tasks, indicating that our 
+proposed model can find more accurate boundary features, 
+effectively suppress background noise interference, and 
+improve sensitivity to local details.
+4.3  Ablation experiment
+In this section, to verify the effectiveness of the attention 
+mechanism and model structure we proposed, as well as 
+the feasibility of significantly introducing channel shuffle to 
+enhance information exchange, we conducted five statisti­
+cal ablation experiments on whether the model uses channel 
+shuffle, the channel shuffle grouping strategy, MS-DCSA, 
+and pre-trained weights respectively.
+4.2.2  ACDC
+The experimental results of MS-DCSNet on the ACDC data­
+set are shown in Table 3. Compared to other advanced meth­
+ods, MS-DCSNet achieved a maximum accuracy of 92.48% 
+and performed well in the segmentation of the right ventricle 
+and myocardium, achieving DSC of 90.93% and 90.30% 
+respectively, indicating that the model has good generalization 
+ability and robustness. The smaller model, also performs well.
+4.2.3  ISIC2017 and CVC-ClinicDB
+In addition to validating the segmentation performance of 
+MS-DCSNet on multi-organ segmentation tasks, we also 
+conducted experimental validation on two binary segmen­
+tation tasks: ISIC2017 and CVC-ClinicDB. The experi­
+mental results are shown in Table 4. It is worth noting that 
+Table 3  Comparison experimental results on the ACDC dataset
+Method
+DSC(%)
+RV
+Myo
+LV
+R50 U-Net [2, 8]
+87.55
+87.10
+80.63
+94.92
+R50 Att-UNet [8, 62]
+86.75
+87.58
+79.20
+93.47
+TransUNet [17]
+89.71
+88.86
+84.53
+95.73
+SwinUNet [33]
+90.00
+88.55
+85.62
+95.83
+MT-UNet [34]
+90.43
+86.64
+89.04
+95.62
+PVT-CASCADE [64]
+90.45
+87.20
+88.96
+95.19
+TransCASCADE [64]
+91.63
+89.14
+90.25
+95.50
+PVT-EMCAD-B2 [57]
+92.12
+90.65
+89.68
+96.02
+RWKV-UNet [42]
+92.17
+90.86
+88.72
+96.92
+MISSFormer [16]
+90.86
+89.55
+88.04
+94.99
+CSWin-UNet [18]
+91.46
+89.68
+88.94
+95.76
+MS-DCSNet
+92.48
+90.93
+90.30
+96.11
+MS-DCSNet-T
+92.10
+90.31
+90.06
+95.91
+(Blue represents the best results, Red represents the second-best 
+results). The results of MS-DCSNet and MS-DCSNet-T are averaged 
+over five runs
+Table 4  Comparison experiments of MS-DCSNet on binary segmentation datasets
+Methods
+ISIC2017(256×256)
+CVC-ClinicDB(224×224)
+DSC(%)
+Sen
+Spe
+Acc
+DSC(%)
+IoU
+Pre
+Rec
+U-Net [2]
+86.98
+86.17
+97.88
+96.12
+93.38
+78.40
+91.76
+84.32
+TransUNet [17]
+85.55
+89.80
+96.44
+95.44
+94.05
+80.49
+91.60
+87.01
+SwinUNet [33]
+87.13
+84.76
+98.27
+96.24
+91.59
+73.26
+85.38
+83.87
+VM-UNet [23]
+86.66
+85.43
+97.92
+96.05
+92.58
+76.07
+88.01
+85.00
+CSWin-UNet [18]
+85.02
+81.95
+98.08
+95.66
+94.74
+82.46
+92.84
+88.14
+RWKV-UNet [42]
+88.90
+87.17
+98.42
+96.73
+96.51
+88.09
+92.41
+95.00
+PVT-EMCAD-B2 [57]
+89.80
+89.07
+98.36
+96.96
+96.36
+87.64
+94.08
+92.84
+MS-DCSNet
+89.14
+88.23
+98.10
+96.62
+96.45
+87.75
+91.93
+95.09
+MS-DCSNet-T
+88.25
+88.60
+97.78
+96.45
+95.77
+86.27
+90.67
+94.35
+(Blue represents the best results, Red represents the second-best results). All experimental results are averaged over five runs
+1 3
+Page 9 of 16 
+   15 
+
+H. Zhai et al.
+learn richer feature representations and have stronger fea­
+ture extraction and recovery capabilities.
+4.3.2  The impact of different grouping strategies for 
+channel shuffle on the model
+The segmentation and rearrangement of channels at differ­
+ent scales can affect the information interaction between 
+channels. To verify this, we conducted ablation experiments 
+on dynamic grouping strategies for channel shuffle using the 
+Synapse dataset, with the results shown in Table 6. From the 
+table, it can be seen that choosing a smaller grouping strat­
+egy can generate more groups and promote greater infor­
+mation exchange between groups, while choosing a larger 
+grouping strategy can reduce the frequency of information 
+exchange between groups, thereby reducing the computa­
+tional burden of the model. Therefore, in order to enable the 
+model to learn richer feature representations, we selected [1, 
+2, 4, 8] as the default grouping strategy.
+4.3.3  The impact of different kernel size for MS-DCSA on 
+the model
+We also conducted additional experiments on the synapse 
+dataset to explore the impact of different scale convolution 
+kernels in the MS-DCSA module. To avoid computational 
+4.3.1  The impact of channel shuffle and MS-DCSA on the 
+model
+To investigate whether our model performs well in complex 
+segmentation environments after using the channel shuffle 
+and MS-DCSA, we conducted ablation experiments using 
+the Synapse dataset, which has a large number of catego­
+ries and a rich variety of features. The experimental results 
+are shown in Table 5. It can be seen that when using chan­
+nel shuffle and MS-DCSA separately (excluding channel 
+shuffle), the performance of the model decreases. This is 
+because without using channel shuffle, MS-DCSA can only 
+rely on multi-scale convolution and global-local feature per­
+ception to extract limited intra group features, which limits 
+its expressive ability. When using channel shuffle alone, 
+the lack of effective perceptual structures to reorganize 
+and learn these scrambled features results in damage to the 
+feature images fed into the following layers, leading to a 
+decrease in performance. However, by combining channel 
+shuffle with MS-DCSA, the model successfully constructed 
+an efficient feature interaction mechanism. On the one hand, 
+channel shuffle can effectively obtain out of group features 
+and promote cross-group information flow. On the other 
+hand, MS-DCSA relies on its multi-scale context aware abil­
+ity to deeply reconstruct and enhance the shuffled features. 
+The two components work together to enable the network to 
+Aorta
+Gallbladder
+Left Kidney
+Right Kidney
+Liver
+Pancreas
+Spleen
+Stomach
+(a) Ground Truth
+(b) TransUNet
+(c) SwinUNet
+(d) CSWin-UNet
+(e) MT-UNet
+(f) RWKV-UNet (g) PVT-EMCAD-B2
+(h) Ours
+Fig. 4  The visualization results of MS-DCSNet on the Synapse dataset 
+are, with the areas within the rectangular boxes indicating that MS-
+DCSNet achieved good performance in segmentation in those parts. It 
+can be seen that MS-DCSNet is equally effective in segmenting details 
+of the Stomach and Liver, except for the reported quantitative results 
+of Gallbladder and Pancreas
+ 
+1 3
+   15 
+ 
+Page 10 of 16
+
+MS-DCSNet: Global-local feature interaction and multi-scale dynamic channel shuffle attention for medical…
+in Table 7. As the size of the convolution kernel decreases, 
+the required number of parameters decreases, but the perfor­
+mance also decreases. Based on this result, we selected [3, 
+5, 7] as the default convolution kernel.
+overhead, we designed three sets of experiments, with 1×
+1, 3×3 and 5×5 as the first set, 3×3, 5×5 and 7×7 as the 
+second set, 1×1, 5×5 and 7×7 as the third set. The per­
+formance of convolution kernels at various scales is shown 
+(b) TransUNet
+(c) SwinUNet
+(d) CSWin-UNet
+(e) RWKV-UNet
+(f) Ours
+(a) Ground Truth
+(b) TransUNet
+(c) SwinUNet
+(d) CSWin-UNet
+(e) RWKV-UNet
+(f) Ours
+(a) Ground Truth
+Right Ventricle
+Myocardium
+Left Ventricle
+(b) TransUNet
+(c) SwinUNet
+(d) CSWin-UNet
+(e) RWKV-UNet
+(f) Ours
+(a) Ground Truth
+Right Ventricle
+Myocardium
+Left Ventricle
+Fig. 6  Visualization results of MS-DCSNet on the ACDC dataset. Compared to other methods, our proposed method significantly reduces the 
+probability of false prediction of segmentation regions, and the segmentation regions are more continuous
+ 
+(b) Ground Truth
+(c) TransUNet
+(d) SwinUNet
+(e) CSWin-UNet
+(f) RWKV-UNet (g) PVT-EMCAD-B2
+(h) Ours
+(a) Origin Image
+(b) Ground Truth
+(c) TransUNet
+(d) SwinUNet
+(e) CSWin-UNet
+(f) RWKV-UNet (g) PVT-EMCAD-B2
+(h) Ours
+(a) Origin Image
+Fig. 5  Visualization results of MS-DCSNet on the CVC-ClinicDB dataset. Compared with SOTA methods in recent years, it can be seen that our 
+proposed method has clearer and more continuous segmentation boundaries
+ 
+1 3
+Page 11 of 16 
+   15 
+
+H. Zhai et al.
+4.3.4  The impact of pretrained weights on the model
+Our proposed model was pretrained on ImageNet1K [54] 
+with an image size set to 224×224, achieving Top-1 accu­
+racy of 64.69% and Top-5 accuracy of 85.80% in 15 train­
+ing epochs. To investigate the impact of pre-trained weights 
+on downstream tasks, we conducted ablation experiments 
+on all 224×224 image segmentation tasks on MS-DCSNet. 
+The experimental results are shown in Table 8. When using 
+the pretrained model,the DSC of the model showed signifi­
+cant improvement and more stable performance, especially 
+in segmentation tasks with complex features such as Syn­
+apse, where DSC increased by 7.95%. These experiments 
+demonstrate that pre-trained weights can effectively assist 
+the model in parameter initialization, leading to faster con­
+vergence and improved segmentation accuracy in subse­
+quent training.
+Table 5  Ablation experiment on the impact of channel shuffle on MS-DCSNet
+CS
+MS-DCSA
+DSC(%)
+HD95(mm)
+Aorta
+GB
+LK
+RK
+Liver
+PC
+SP
+SM
+✓
+✓
+84.22
+19.24
+89.15
+75.25
+86.22
+83.17
+94.89
+70.60
+90.78
+90.78
+×
+✓
+83.59
+20.77
+89.09
+74.00
+86.47
+83.36
+94.70
+68.34
+90.54
+82.26
+✓
+×
+83.05
+19.16
+89.96
+75.47
+84.68
+79.02
+94.50
+69.51
+89.31
+81.96
+×
+×
+83.66
+19.43
+89.59
+74.33
+86.53
+82.02
+95.13
+66.62
+90.73
+84.29
+CS represents Channel Shuffle. All results are averaged over five runs on Synapse dataset
+Table 6  Ablation experiment on the impact of channel grouping strate­
+gies on MS-DCSNet
+Channel Groups
+DSC(%)
+#Params(M)
+#GFlops
+[1, 2, 4, 8]
+84.22±0.59
+25.25
+31.33
+[2, 4, 8, 16]
+82.81±0.46
+25.17
+31.08
+[4, 8, 16, 32]
+83.31±0.94
+25.14
+31.00
+[8, 16, 32, 64]
+83.18±0.83
+25.13
+30.98
+The number represents the grouping size of each layer from top to 
+bottom of the model. The bold part represents the hyperparameters 
+used in this paper and the performance achieved
+Table 7  Ablation experiment on the impact of kernel size on MS-
+DCSA
+Kernel Size
+DSC(%)
+HD95(mm)
+#Params(M)
+#GFlops
+[3, 5, 7]
+84.22±0.59
+19.24±2.47
+25.25
+31.33
+[1, 3, 5]
+82.96±0.47
+24.09±1.74
+25.22
+31.18
+[1, 5 ,7]
+83.84±0.29
+19.15±1.27
+25.25
+31.31
+All results are averaged over five runs on Synapse dataset. The bold 
+part represents the hyperparameters used in this paper and the per­
+formance achieved
+(d) CSWin-UNet
+(e) RWKV-UNet
+(f) Ours
+(b) Ground Truth
+(c) PVT-EMCAD-B2
+(a) Origin Image
+(d) CSWin-UNet
+(e) RWKV-UNet
+(f) Ours
+(b) Ground Truth
+(c) PVT-EMCAD-B2
+(a) Origin Image
+Fig. 7  Visualization results of MS-DCSNet on the ISIC-2017 dataset. 
+The ground truth and the predicted segmentation boundary are repre­
+sented in red and blue, respectively. From the figure, it can be seen that 
+our proposed method can effectively enhance the fitting ability of edge 
+regions and improve the integrity of the segmentation structure
+ 
+1 3
+   15 
+ 
+Page 12 of 16
+
+MS-DCSNet: Global-local feature interaction and multi-scale dynamic channel shuffle attention for medical…
+4.4.2  Interpretability analysis of feature enhancement
+To validate the effectiveness of our proposed MS-DCSA in 
+feature enhancement and restoration, we generated heat­
+maps by using Grad-GAM [65] on the decoder for addi­
+tional visualization analysis. From the heatmap distribution 
+shown in Fig. 8, it can be seen that by using MS-DCSA in 
+the multi-level upsampling structure, the network’s atten­
+tion can be more focused on the edge details and internal 
+features of the target area. Meanwhile, with the use of MS-
+DCSA, the restoration and enhancement effects of image 
+features can be further enhanced, which proves the effec­
+tiveness of MS-DCSA.
+4.4.3  Computational complexity analysis
+Assuming the dimension of the input feature map is 
+λ ∈R(H×W ×C), as shown in Fig. 3, the dimensions of the 
+feature maps obtained from the two branches of MS-DCSA 
+after adaptive global average pooling and multi-scale fusion 
+processing are λ1 ∈R(1×1×C) and λ2 ∈R(H×W ×C) 
+respectively. Subsequently, the two feature maps are ele­
+ment-wise multiplied to obtain λ
+′ ∈R(H×W ×C), which 
+is then activated using the Sigmoid function for output. 
+Therefore, the computational complexity of this attention 
+mechanism is always guaranteed to be linear. Besides, The 
+number of parameters and floating-point operations of MS-
+DCSNet are shown in Table 10. It can be seen that our pro­
+posed MS-DCSNet has a unique advantage in segmentation 
+accuracy with the DSC score of 84.22% compared to other 
+models. Meanwhile, our lightweight model MS-DCSNet-
+T achieved 82.06% DSC with 6.32M Params and 7.89G 
+4.4  Expanded experiments
+4.4.1  Statistical experiments
+To further validate the feasibility of the model, we reported 
+the statistical experimental results of the model on vari­
+ous datasets within a 95% confidence interval. As shown 
+in Table 9, MS-DCSNet exhibits stable and excellent per­
+formance on multiple datasets. Especially, the lightweight 
+model MS-DCSNet-T can effectively handle these tasks 
+and maintain high segmentation accuracy while reducing 
+the depth of the neural network and resource consumption. 
+These experiments demonstrate the adaptability and stability 
+of MS-DCSNet under different task scenarios and resource 
+constraints, and demonstrate its significant advantages in 
+segmentation tasks and feature extraction capabilities.
+Table 8  Ablation experiments on the impact of pretrained weights on 
+MS-DCSNet
+Pretrained
+Synapse
+ACDC
+CVC-ClinicDB
+✓
+84.22±0.59
+92.48±0.22
+96.45±0.19
+×
+76.27±0.91
+91.76±0.15
+92.79±1.94
+All results are averaged over five runs on Synapse dataset
+Table 9  Statistical experimental results of MS-DCSNet on multiple 
+datasets
+Method
+Synapse
+ACDC
+ISIC2017
+CVC-ClinicDB
+MS-DCS­
+Net
+84.22±0.59 92.48±0.22 88.70±0.53 96.45±0.19
+MS-DCS­
+Net-T
+82.06±0.87 92.10±0.09 88.25±0.22 95.77±0.26
+All results are averaged over five runs on Synapse dataset
+Fig. 8  Visual comparison of decoder features with and without MS-DCSA. The first and second rows present the features of our decoder (with 
+MS-DCSA) and the original decoder (without MS-DCSA), respectively. Layer numbers are numbered from the bottom to the top of the decoder
+ 
+1 3
+Page 13 of 16 
+   15 
+
+H. Zhai et al.
+promote the development of this technology towards clini­
+cal practicality.
+Author Contributions  Hao Zhai: Conceptualization, Methodology, Data 
+curation, Software, Writing - review & editing, Funding acquisition. 
+Yang Zhang: Conceptualization, Writing - original draft. Lei Yu: Writ­
+ing - review & editing, Supervision. Ping Yu: Writing - review & editing, 
+Supervision. Yuanzhe Zhang: Writing - review & editing, Validation.
+Funding  This research was supported by the National Natural Sci­
+ence Foundation of China (Grant No. 62003065); the Natural Sci­
+ence Foundation of Chongqing (General Program) (Grant No. CST­
+B2024NSCQ-MSX0527); the Science and Technology Research 
+Program of Chongqing Municipal Education Commission (Grant No. 
+KJQN202200564); the Science and Technology Research Program 
+of Chongqing Municipal Education Commission (Grant No. KJZD-
+K202200504); the Fund project of Chongqing Normal University 
+(Grant No. 21XLB032).
+Data Availability  All datasets can be downloaded from the correspond­
+ing official website.
+Declarations
+Conflict of Interest  The authors have no relevant financial or non-fi­
+nancial interests to disclose.
+References
+1.	
+LeCun Y, Bengio Y, Hinton G (2015) Deep learning. Nature 
+521(7553):436–444
+2.	
+Ronneberger O, Fischer P, Brox T (2015) U-net: convolutional 
+networks for biomedical image segmentation. In: Medical Image 
+Computing and Computer-Assisted Intervention–MICCAI 2015: 
+18th International Conference, Munich, Germany, October 5-9, 
+2015, Proceedings, Part III 18, pp 234–241. Springer
+3.	
+Isensee F, Jaeger PF, Kohl SA, Petersen J, Maier-Hein KH (2021) 
+nnu-net: a self-configuring method for deep learning-based bio­
+medical image segmentation. Nat Methods 18(2):203–211
+4.	
+Zhou Z, Rahman Siddiquee MM, Tajbakhsh N, Liang J (2018) 
+Unet++: a nested u-net architecture for medical image segmenta­
+tion. In: Deep learning in medical image analysis and multimodal 
+learning for clinical decision support: 4th International Work­
+shop, DLMIA 2018, and 8th International Workshop, ML-CDS 
+2018, Held in Conjunction with MICCAI 2018, Granada, Spain, 
+September 20, 2018, Proceedings 4, pp 3–11. Springer
+5.	
+Huang H, Lin L, Tong R, Hu H, Zhang Q, Iwamoto Y, Han X, 
+Chen Y-W, Wu J (2020) Unet 3+: a full-scale connected unet for 
+medical image segmentation. In: ICASSP 2020-2020 IEEE Inter­
+national Conference on Acoustics, Speech and Signal Processing 
+(ICASSP), pp 1055–1059. IEEE
+6.	
+Krizhevsky A, Sutskever I, Hinton GE (2012) Imagenet classi­
+fication with deep convolutional neural networks. Advances in 
+neural information processing systems, vol 25
+7.	
+Howard AG, Zhu M, Chen B, Kalenichenko D, Wang W, Wey­
+and T, Andreetto M, Adam H (2017) Mobilenets: efficient con­
+volutional neural networks for mobile vision applications. 
+arXiv:1704.04861
+8.	
+He K, Zhang X, Ren S, Sun J (2016) Deep residual learning for 
+image recognition. In: Proceedings of the IEEE conference on 
+computer vision and pattern recognition, pp 770–778
+Flops, surpassing HiFormer-B and CSWin-UNet proposed 
+in recent years, demonstrating strong competitiveness and 
+development potential.
+5  Conclusion
+In this paper, we propose MS-DCSNet, a novel fully con­
+volutional network architecture that introduces MS-DCSA 
+mechanism with inherent interpretability advantages for 
+medical image segmentation. Unlike previous works that 
+treat channel shuffle as a mere component to boost per­
+formance, we systematically explore its role in building 
+more robust and explainable feature representations. For 
+example, our proposed MS-DCSA adopts an interleaved 
+design of channel shuffle and multi-scale feature extraction 
+and concatenation, which can disrupt the regular distribu­
+tion of the original channels and enable the model to learn 
+richer features at different scales. Furthermore, this design 
+can also enable the model to break free from dependence 
+on a single local channel feature and instead use global 
+contextual information to correct local ambiguity. Also, it 
+is worth noting that MS-DCSNet achieved significant seg­
+mentation accuracy on multiple datasets, indicating its value 
+in clinically challenging segmentation tasks. However, 
+although MS-DCSNet performs well in 2D medical image 
+segmentation tasks, its performance in 3D medical image 
+segmentation tasks has not been validated. In practical clini­
+cal application scenarios, it is usually more inclined to use 
+3D volume data that contains complete spatial informa­
+tion. Therefore, developing a 3D extended version of MS-
+DCSNet and verifying its performance on more modalities 
+of medical imaging data has become our main direction for 
+future work. In addition, we are committed to promoting 
+the model to clinical application scenarios and continuously 
+improving the model based on user feedback, in order to 
+Table 10  Comparison of model parameters in the segmentation task 
+on Synapse
+Method
+#Params
+#GFlops
+Model_size(MB)
+DSC(%)
+TransUNet 
+[17]
+93.23
+24.73
+439.85
+77.48
+SwinUNet [33] 20.06
+5.61
+78.51
+79.13
+HiFormer-B 
+[53]
+34.14
+17.81
+98.69
+80.39
+CSWin-UNet 
+[18]
+23.57
+4.72
+90.08
+81.12
+RWKV-UNet 
+[42]
+17.10
+11.17
+66.57
+84.02
+PVT-EMCAD-
+B2 [57]
+26.77
+4.29
+102.37
+83.63
+MS-DCSNet
+25.25
+31.33
+96.53
+84.22
+MS-DCSNet-T
+6.32
+7.89
+24.28
+82.06
+The bold part represents the best performance in comparison method
+1 3
+   15 
+ 
+Page 14 of 16
+
+MS-DCSNet: Global-local feature interaction and multi-scale dynamic channel shuffle attention for medical…
+28.	 Qu H, Ning L, An R, Fan W, Derr T, Liu H, Xu X, Li Q (2024) A 
+survey of mamba. arXiv:2408.01129
+29.	 Zhang X, Zhou X, Lin M, Sun J (2018) Shufflenet: an extremely 
+efficient convolutional neural network for mobile devices. In: 
+Proceedings of the IEEE conference on computer vision and pat­
+tern recognition, pp 6848–6856
+30.	 Zhang Z, Liu Q, Wang Y (2018) Road extraction by deep residual 
+u-net. IEEE Geosci Remote Sens Lett 15(5):749–753
+31.	 Nobel SN, Sifat OF, Islam MR, Sayeed MS, Amiruzzaman 
+M (2024) Enhancing gi cancer radiation therapy: advanced 
+organ segmentation with reseca-u-net model. Emerg Sci J 
+8(3):999–1015
+32.	 Çiçek Ö, Abdulkadir A, Lienkamp SS, Brox T, Ronneberger O 
+(2016) 3d u-net: learning dense volumetric segmentation from 
+sparse annotation. In: Medical Image Computing and Computer-
+Assisted Intervention–MICCAI 2016: 19th International Confer­
+ence, Athens, Greece, October 17-21, 2016, Proceedings, Part II 
+19, pp 424–432. Springer
+33.	 Cao H, Wang Y, Chen J, Jiang D, Zhang X, Tian Q, Wang M 
+(2022) Swin-unet: Unet-like pure transformer for medical image 
+segmentation. In: European conference on computer vision, pp 
+205–218. Springer
+34.	 Wang H, Xie S, Lin L, Iwamoto Y, Han X-H, Chen Y-W, Tong R 
+(2022) Mixed transformer u-net for medical image segmentation. 
+In: ICASSP 2022-2022 IEEE International Conference on Acous­
+tics, Speech and Signal Processing (ICASSP), pp 2390–2394. 
+IEEE
+35.	 Hatamizadeh A, Tang Y, Nath V, Yang D, Myronenko A, Land­
+man B, Roth HR, Xu D (2022) Unetr: transformers for 3d medi­
+cal image segmentation. In: Proceedings of the IEEE/CVF winter 
+conference on applications of computer vision, pp 574–584
+36.	 Hatamizadeh A, Nath V, Tang Y, Yang D, Roth HR, Xu D (2021) 
+Swin unetr: swin transformers for semantic segmentation of brain 
+tumors in mri images. In: International MICCAI Brainlesion 
+workshop, pp 272–284. Springer
+37.	 Gu A, Dao T (2023) Mamba: linear-time sequence modeling with 
+selective state spaces. arXiv:2312.00752
+38.	 Peng B, Alcaide E, Anthony Q, Albalak A, Arcadinho S, Bider­
+man S, Cao H, Cheng X, Chung M, Grella M et al (2023) Rwkv: 
+reinventing rnns for the transformer era. arXiv:2305.13048
+39.	 Duan Y, Wang W, Chen Z, Zhu X, Lu L, Lu T, Qiao Y, Li H, Dai 
+J, Wang W (2024) Vision-rwkv: efficient and scalable visual per­
+ception with RWKV-like architectures. arXiv:2403.02308
+40.	 Ma J, Li F, Wang B (2024) U-mamba: enhancing long-range depen­
+dency for biomedical image segmentation. arXiv:2401.04722
+41.	 Xing Z, Ye T, Yang Y, Liu G, Zhu L (2024) Segmamba: long-
+range sequential modeling mamba for 3d medical image segmen­
+tation. In: International conference on medical image computing 
+and computer-assisted intervention, pp 578–588. Springer
+42.	 Jiang J, Zhang J, Liu W, Gao M, Hu X, Yan X, Huang F, Liu Y 
+(2025) Rwkv-unet: improving unet with long-range cooperation 
+for effective medical image segmentation. arXiv:2501.08458
+43.	 Chen T, Zhou X, Tan Z, Wu Y, Wang Z, Ye Z, Gong T, Chu Q, Yu 
+N, Lu L (2025) Zig-rir: zigzag rwkv-in-rwkv for efficient medical 
+image segmentation. IEEE Trans Med Imaging. ​h​t​t​p​s​:​/​/​d​o​i​.​o​r​g​/​1​0​
+.​1​1​0​9​/​T​M​I​.​2​0​2​5​.​3​5​6​1​7​9​7
+44.	 Wang J, Chen J, Chen D, Wu J (2024) Lkm-unet: large kernel 
+vision mamba unet for medical image segmentation. In: Interna­
+tional conference on medical image computing and computer-
+assisted intervention, pp 360–370. Springer
+45.	 Chen C-FR, Fan Q, Panda R (2021) Crossvit: cross-attention 
+multi-scale vision transformer for image classification. In: Pro­
+ceedings of the IEEE/CVF international conference on computer 
+vision, pp 357–366
+46.	 Chen L-C, Papandreou G, Kokkinos I, Murphy K, Yuille AL 
+(2017) Deeplab: semantic image segmentation with deep 
+9.	
+Woo S, Debnath S, Hu R, Chen X, Liu Z, Kweon IS, Xie S (2023) 
+Convnext v2: co-designing and scaling convnets with masked 
+autoencoders. In: Proceedings of the IEEE/CVF conference on 
+computer vision and pattern recognition, pp 16133–16142
+10.	 Wang Q, Wu B, Zhu P, Li P, Zuo W, Hu Q (2020) Eca-net: effi­
+cient channel attention for deep convolutional neural networks. 
+In: Proceedings of the IEEE/CVF conference on computer vision 
+and pattern recognition, pp 11534–11542
+11.	 Chen S, Tan X, Wang B, Hu X (2018) Reverse attention for salient 
+object detection. In: Proceedings of the European Conference on 
+Computer Vision (ECCV), pp 234–250
+12.	 Hu J, Shen L, Sun G (2018) Squeeze-and-excitation networks. 
+In: Proceedings of the IEEE conference on computer vision and 
+pattern recognition, pp 7132–7141
+13.	 Wang L, Xu P, Cao X, Nappi M, Wan S (2024) Label-aware atten­
+tion network with multi-scale boosting for medical image seg­
+mentation. Expert Syst Appl 255:124698
+14.	 Vaswani A, Shazeer N, Parmar N, Uszkoreit J, Jones L, Gomez 
+AN, Kaiser Ł, Polosukhin I (2017) Attention is all you need. 
+Advances in neural information processing systems, vol 30
+15.	 Dosovitskiy A, Beyer L, Kolesnikov A, Weissenborn D, Zhai X, 
+Unterthiner T, Dehghani M, Minderer M, Heigold G, Gelly S et 
+al (2020) An image is worth 16x16 words: transformers for image 
+recognition at scale. arXiv:2010.11929
+16.	 Huang X, Deng Z, Li D, Yuan X, Fu Y (2022) Missformer: an 
+effective transformer for 2d medical image segmentation. IEEE 
+Trans Med Imaging 42(5):1484–1494
+17.	 Chen J, Lu Y, Yu Q, Luo X, Adeli E, Wang Y, Lu L, Yuille AL, 
+Zhou Y (2021) Transunet: transformers make strong encoders for 
+medical image segmentation. arXiv:2102.04306
+18.	 Liu X, Gao P, Yu T, Wang F, Yuan R-Y (2025) Cswin-unet: trans­
+former unet with cross-shaped windows for medical image seg­
+mentation. Inf Fusion 113:102634. ​h​t​t​p​s​:​/​/​d​o​i​.​o​r​g​/​1​0​.​1​0​1​6​/​j​.​i​n​f​f​u​
+s​.​2​0​2​4​.​1​0​2​6​3​4
+19.	 Azad R, Arimond R, Aghdam EK, Kazerouni A, Merhof D (2023) 
+Dae-former: dual attention-guided efficient transformer for medi­
+cal image segmentation. In: International workshop on predictive 
+intelligence in medicine, pp 83–95. Springer
+20.	 He A, Wang K, Li T, Du C, Xia S, Fu H (2023) H2former: an 
+efficient hierarchical hybrid transformer for medical image seg­
+mentation. IEEE Trans Med Imaging 42(9):2763–2775
+21.	 Zhang Y, Liu H, Hu Q (2021) Transfuse: fusing transformers and 
+cnns for medical image segmentation. In: Medical Image Com­
+puting and Computer Assisted intervention–MICCAI 2021: 24th 
+International Conference, Strasbourg, France, September 27–
+October 1, 2021, Proceedings, Part I 24, pp 14–24. Springer
+22.	 Zhou H-Y, Guo J, Zhang Y, Yu L, Wang L, Yu Y (2021) 
+nnformer: interleaved transformer for volumetric segmentation. 
+arXiv:2109.03201
+23.	 Ruan J, Li J, Xiang S (2024) Vm-unet: vision mamba unet for 
+medical image segmentation. arXiv:2402.02491
+24.	 Liu J, Yang H, Zhou H-Y, Xi Y, Yu L, Li C, Liang Y, Shi G, 
+Yu Y, Zhang S et al (2024) Swin-umamba: Mamba-based unet 
+with imagenet-based pretraining. In: International conference on 
+medical image computing and computer-assisted intervention, pp 
+615–625. Springer
+25.	 Chen C, Yu L, Min S, Wang S (2024) Msvm-unet: multi-scale 
+vision mamba unet for medical image segmentation. In: 2024 
+IEEE International Conference on Bioinformatics and Biomedi­
+cine (BIBM), pp 3111–3114. IEEE
+26.	 Wang Z, Zheng J-Q, Zhang Y, Cui G, Li L (2024) Mamba-unet: 
+unet-like pure visual mamba for medical image segmentation. 
+arXiv:2402.05079
+27.	 Yu W, Wang X (2025) Mambaout: do we really need mamba for 
+vision? In: Proceedings of the computer vision and pattern recog­
+nition conference, pp 4484–4496
+1 3
+Page 15 of 16 
+   15 
+
+H. Zhai et al.
+59.	 Bernard O, Lalande A, Zotti C, Cervenansky F, Yang X, Heng 
+P-A, Cetin I, Lekadir K, Camara O, Ballester MAG et al (2018) 
+Deep learning techniques for automatic mri cardiac multi-struc­
+tures segmentation and diagnosis: is the problem solved? IEEE 
+Trans Med Imaging 37(11):2514–2525
+60.	 Codella NC, Gutman D, Celebi ME, Helba B, Marchetti MA, 
+Dusza SW, Kalloo A, Liopyris K, Mishra N, Kittler H et al (2018) 
+Skin lesion analysis toward melanoma detection: a challenge at 
+the 2017 international symposium on biomedical imaging (isbi), 
+hosted by the international skin imaging collaboration (isic). In: 
+2018 IEEE 15th International Symposium on Biomedical Imag­
+ing (ISBI 2018), pp 168–172. IEEE
+61.	 Bernal J, Sánchez FJ, Fernández-Esparrach G, Gil D, Rodríguez 
+C, Vilariño F (2015) Wm-dova maps for accurate polyp highlight­
+ing in colonoscopy: validation vs. saliency maps from physicians. 
+Comput Med Imaging Graph 43:99–111
+62.	 Oktay O, Schlemper J, Folgoc LL, Lee M, Heinrich M, Mis­
+awa K, Mori K, McDonagh S, Hammerla NY, Kainz B et al 
+(2018) Attention u-net: learning where to look for the pancreas. 
+arXiv:1804.03999
+63.	 Qin J, Yu J, Xiang J, He X, Zhang W, Wu L (2023) Aia-unet: 
+attention in attention for medical image segmentation. In: 2023 
+IEEE International Conference on Bioinformatics and Biomedi­
+cine (BIBM), pp 2179–2182. IEEE
+64.	 Rahman MM, Marculescu R (2023) Medical image segmentation 
+via cascaded attention decoding. In: Proceedings of the IEEE/
+CVF winter conference on applications of computer vision, pp 
+6222–6231
+65.	 Selvaraju RR, Cogswell M, Das A, Vedantam R, Parikh D, Batra 
+D (2017) Grad-cam: visual explanations from deep networks via 
+gradient-based localization. In: Proceedings of the IEEE interna­
+tional conference on computer vision, pp 618–626
+Publisher's Note  Springer Nature remains neutral with regard to juris­
+dictional claims in published maps and institutional affiliations.
+Springer Nature or its licensor (e.g. a society or other partner) holds 
+exclusive rights to this article under a publishing agreement with the 
+author(s) or other rightsholder(s); author self-archiving of the accepted 
+manuscript version of this article is solely governed by the terms of 
+such publishing agreement and applicable law.
+convolutional nets, atrous convolution, and fully connected crfs. 
+IEEE Trans Pattern Anal Mach Intell 40(4):834–848
+47.	 Chen L-C, Zhu Y, Papandreou G, Schroff F, Adam H (2018) 
+Encoder-decoder with atrous separable convolution for semantic 
+image segmentation. In: Proceedings of the European Conference 
+on Computer Vision (ECCV), pp 801–818
+48.	 Lin T-Y, Dollár P, Girshick R, He K, Hariharan B, Belongie S 
+(2017) Feature pyramid networks for object detection. In: Pro­
+ceedings of the IEEE conference on computer vision and pattern 
+recognition, pp 2117–2125
+49.	 Zhang Z, Zhang W (2021) Pyramid medical transformer for med­
+ical image segmentation. arXiv:2104.14702
+50.	 Pan SJ, Yang Q (2009) A survey on transfer learning. IEEE Trans 
+Knowl Data Eng 22(10):1345–1359
+51.	 Armoogum S, Motean K, Dewi DA, Kurniawan TB, Kijsomporn 
+J (2024) Breast cancer prediction using transfer learning-based 
+classification model. Emerg Sci J 8(6):2373–2384
+52.	 Al-Dhabyani W, Gomaa M, Khaled H, Fahmy A (2020) Dataset 
+of breast ultrasound images. Data Brief 28:104863
+53.	 Heidari M, Kazerouni A, Soltany M, Azad R, Aghdam EK, 
+Cohen-Adad J, Merhof D (2023) Hiformer: hierarchical multi-
+scale representations using transformers for medical image seg­
+mentation. In: Proceedings of the IEEE/CVF winter conference 
+on applications of computer vision, pp 6202–6212
+54.	 Deng J, Dong W, Socher R, Li L-J, Li K, Fei-Fei L (2009) Ima­
+genet: a large-scale hierarchical image database. In: 2009 IEEE 
+conference on computer vision and pattern recognition, pp 248–
+255. IEEE
+55.	 Ma N, Zhang X, Zheng H-T, Sun J (2018) Shufflenet v2: practical 
+guidelines for efficient cnn architecture design. In: Proceedings 
+of the European Conference on Computer Vision (ECCV), pp 
+116–131
+56.	 Yue Y, Li Z (2024) Medmamba: vision mamba for medical image 
+classification. arXiv:2403.03849
+57.	 Rahman MM, Munir M, Marculescu R (2024) Emcad: efficient 
+multi-scale convolutional attention decoding for medical image 
+segmentation. In: Proceedings of the IEEE/CVF conference on 
+computer vision and pattern recognition, pp 11769–11779
+58.	 Landman B, Xu Z, Igelsias J, Styner M, Langerak T, Klein A 
+(2015) Miccai multi-atlas labeling beyond the cranial vault–
+workshop and challenge. In: Proc. MICCAI multi-atlas labeling 
+beyond cranial vault—workshop challenge, vol 5, p 12. Munich, 
+Germany
+1 3
+   15 
+ 
+Page 16 of 16

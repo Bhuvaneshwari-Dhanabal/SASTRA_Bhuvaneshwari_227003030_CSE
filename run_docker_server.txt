@@ -1,0 +1,25 @@
+1. Open PowerShell in your project directory
+
+cd "D:\SASTRA_Bhuvaneshwari_227003030_CSE\code\dmfrontend"
+
+2. Start the servers
+
+docker compose up -d dmbackend dmfrontend
+
+docker ps
+
+3. View server logs
+
+docker compose logs -f dmfrontend
+
+docker compose logs -f dmbackend
+
+4.If you changed the code
+
+docker compose up -d --build dmfrontend
+
+docker compose up -d --build dmbackend
+
+If you only changed Python source files and your backend bind mount is active, you may not need to rebuild the image. Restart the backend if necessary:
+
+docker compose restart dmbackend

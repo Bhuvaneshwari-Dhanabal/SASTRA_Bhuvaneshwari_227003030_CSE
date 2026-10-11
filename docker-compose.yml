@@ -1,0 +1,46 @@
+
+services:
+  dmfrontend:
+    build:
+      context: ./Code/dmfrontend
+      dockerfile: Dockerfile
+    container_name: autosar-ai-dmfrontend
+    ports:
+      - "5173:80"
+    depends_on:
+      - dmbackend
+    restart: unless-stopped
+
+  dmbackend:
+    build:
+      context: ./Code/dmbackend
+      dockerfile: Dockerfile
+    container_name: autosar-ai-dmbackend
+    expose:
+      - "5000"
+    volumes:
+      - ./Input_Data:/project/Input_Data
+      - ./Code/dmbackend/data:/app/data
+      - ./Model_Prompts_Config:/app/Model_Prompts_Config:ro
+    env_file:
+      - ./Code/dmbackend/.env
+    environment:
+      OLLAMA_BASE_URL: http://ollama:11434
+      OLLAMA_MODEL: qwen2.5:3b
+      OLLAMA_TIMEOUT: "180"
+    depends_on:
+      - ollama
+    restart: unless-stopped
+
+  ollama:
+    image: ollama/ollama:latest
+    container_name: autosar-ai-ollama
+    expose:
+      - "11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    restart: unless-stopped
+
+volumes:
+  ollama_data:
+    external: true
