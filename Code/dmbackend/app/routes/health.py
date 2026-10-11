@@ -12,5 +12,5 @@ health_bp = Blueprint(
 def health():
     return jsonify({
         "status": "success",
-        "message": "AUTOSAR AI Assistant API is running"
+        "message": "AutoArch AI API is running"
     }), 200

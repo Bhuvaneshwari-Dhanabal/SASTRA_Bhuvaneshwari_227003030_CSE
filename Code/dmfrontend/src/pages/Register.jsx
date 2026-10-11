@@ -57,7 +57,7 @@ function Register() {
           </h1>
 
           <p className="mt-2 text-sm text-gray-400">
-            Start using AUTOSAR AI Assistant
+            Start using AutoArch AI
           </p>
 
         </div>

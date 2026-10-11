@@ -1,5 +1,5 @@
 
-name: AUTOSAR AI Assistant CI/CD
+name: AutoArch AI CI/CD
 
 on:
   push:

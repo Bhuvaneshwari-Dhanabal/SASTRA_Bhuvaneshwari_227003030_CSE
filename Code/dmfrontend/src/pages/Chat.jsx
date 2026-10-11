@@ -389,7 +389,7 @@ const handleSend = async () => {
 
             <div>
               <h2 className="text-sm font-semibold text-gray-200">
-                AUTOSAR AI Assistant
+                AutoArch AI
               </h2>
 
               <div className="flex items-center gap-1.5 text-xs text-gray-500">

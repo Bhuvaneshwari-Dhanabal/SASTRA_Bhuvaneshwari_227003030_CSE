@@ -83,7 +83,7 @@ function Settings() {
             </h1>
 
             <p className="text-xs text-gray-500">
-              Manage your AUTOSAR AI Assistant
+              Manage your AutoArch AI account and preferences
             </p>
           </div>
 

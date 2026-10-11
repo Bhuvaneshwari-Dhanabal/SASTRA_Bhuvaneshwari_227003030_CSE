@@ -67,7 +67,7 @@ function ChatInput({
         </div>
 
         <p className="mt-2 text-center text-xs text-gray-600">
-          AUTOSAR AI Assistant can make mistakes.
+          AutoArch AI Assistant can make mistakes.
           Verify important information.
         </p>
 
