@@ -1,15 +1,14 @@
 
 services:
   dmfrontend:
-    build:
-      context: ./Code/dmfrontend
-      dockerfile: Dockerfile
+    image: bhuvaneshwarid48/autosar-ai-frontend:latest
     container_name: autosar-ai-dmfrontend
     ports:
       - "5173:80"
     depends_on:
       - dmbackend
-    restart: unless-stopped
+    restart: unless-stopped 
+
 
   dmbackend:
     build:
