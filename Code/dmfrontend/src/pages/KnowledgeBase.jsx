@@ -578,11 +578,11 @@ function KnowledgeBase() {
 
                       <div>
                         <p className="text-xs text-gray-600">
-                          Document ID
+                          Document Number
                         </p>
 
                         <p className="mt-1 text-sm text-gray-300">
-                          #{document.id}
+                          { `Document ${document.document_number}`|| document.display_name}
                         </p>
                       </div>
 

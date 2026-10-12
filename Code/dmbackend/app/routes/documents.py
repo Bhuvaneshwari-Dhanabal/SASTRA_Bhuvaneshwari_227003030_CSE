@@ -22,9 +22,16 @@ documents_bp = Blueprint(
 ALLOWED_EXTENSION = ".pdf"
 
 
-def serialize_document(document):
+
+def serialize_document(document, document_number=None):
     return {
-        "id": document["id"],
+        "id": document["id"],  # Keep the real database ID unchanged
+        "document_number": document_number,
+        "display_name": (
+            f"Document {document_number}"
+            if document_number is not None
+            else document["original_filename"]
+        ),
         "original_filename": document["original_filename"],
         "file_size": document["file_size"],
         "page_count": document["page_count"],
@@ -34,6 +41,7 @@ def serialize_document(document):
         "created_at": document["created_at"],
         "updated_at": document["updated_at"],
     }
+
 
 
 @documents_bp.post("/upload")
@@ -262,6 +270,7 @@ def upload_document(user_id):
         connection.close()
 
 
+
 @documents_bp.get("")
 @token_required
 def list_documents(user_id):
@@ -273,20 +282,27 @@ def list_documents(user_id):
             SELECT *
             FROM documents
             WHERE user_id = ?
-            ORDER BY created_at DESC
+            ORDER BY created_at ASC, id ASC
             """,
             (user_id,),
         ).fetchall()
 
+        serialized_documents = [
+            serialize_document(document, document_number=index)
+            for index, document in enumerate(documents, start=1)
+        ]
+
+        # Display newest documents first, while keeping their
+        # assigned numbers consistent with the chronological order.
+        serialized_documents.reverse()
+
         return jsonify({
-            "documents": [
-                serialize_document(document)
-                for document in documents
-            ]
+            "documents": serialized_documents
         }), 200
 
     finally:
         connection.close()
+
 
 
 @documents_bp.get("/<int:document_id>")

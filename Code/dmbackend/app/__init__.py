@@ -12,7 +12,8 @@ load_dotenv()
 
 def create_app():
     app = Flask(__name__)
-
+    
+    app.config["MAX_CONTENT_LENGTH"] = 1024 * 1024 * 1024  # 1 GB
     app.config["SECRET_KEY"] = os.getenv(
         "SECRET_KEY",
         "development-secret"

@@ -444,10 +444,11 @@ const handleSend = async () => {
               </option>
 
               {readyDocuments.map((document) => (
-                <option key={document.id} value={String(document.id)}>
-                  {document.original_filename}
-                </option>
-              ))}
+  <option key={document.id} value={String(document.id)}>
+  {document.original_filename|| document.display_name}  
+  </option>
+
+))}
             </select>
 
             <button

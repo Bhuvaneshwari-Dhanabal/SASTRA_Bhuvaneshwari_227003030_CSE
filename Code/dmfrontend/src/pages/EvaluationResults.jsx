@@ -15,20 +15,30 @@ function EvaluationResults() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [exporting, setExporting] = useState(false);
+  const [documents, setDocuments] = useState([]);
 
   const loadResults = useCallback(async () => {
-    setLoading(true);
-    setError("");
-    try {
-      const response = await api.get("/evaluations");
-      setSummary(response.data.summary || {});
-      setEvaluations(response.data.evaluations || []);
-    } catch (err) {
-      setError(err.response?.data?.error || "Could not load evaluation results. Check that the backend is running and you are signed in.");
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  setLoading(true);
+  setError("");
+
+  try {
+    const [evaluationResponse, documentResponse] = await Promise.all([
+      api.get("/evaluations"),
+      api.get("/documents"),
+    ]);
+
+    setSummary(evaluationResponse.data.summary || {});
+    setEvaluations(evaluationResponse.data.evaluations || []);
+    setDocuments(documentResponse.data.documents || []);
+  } catch (err) {
+    setError(
+      err.response?.data?.error ||
+        "Could not load evaluation results. Check that the backend is running and you are signed in."
+    );
+  } finally {
+    setLoading(false);
+  }
+}, []);
 
   useEffect(() => { loadResults(); }, [loadResults]);
 
@@ -79,8 +89,120 @@ function EvaluationResults() {
         </div>
         <section className="overflow-hidden rounded-2xl border border-gray-800 bg-gray-900/30">
           <div className="border-b border-gray-800 px-5 py-4"><h2 className="font-semibold">Chat evaluation log</h2><p className="mt-1 text-xs text-gray-500">Each row belongs to the signed-in user and its conversation.</p></div>
-          {loading ? <p className="p-8 text-center text-sm text-gray-400">Loading evaluation records…</p> : evaluations.length === 0 ? <div className="p-10 text-center"><FileSearch className="mx-auto mb-3 text-gray-600" size={32} /><p className="font-medium text-gray-300">No evaluation records yet</p><p className="mt-1 text-sm text-gray-500">Ask a question in Chat. New requests will appear here automatically.</p><button onClick={() => navigate("/chat")} className="mt-4 rounded-lg bg-orange-500 px-4 py-2 text-sm font-medium hover:bg-orange-600">Go to Chat</button></div> : <div className="overflow-x-auto"><table className="w-full min-w-[900px] text-left text-sm"><thead className="bg-gray-900 text-xs uppercase tracking-wide text-gray-500"><tr><th className="px-5 py-3">Date</th><th className="px-5 py-3">Conversation</th><th className="px-5 py-3">Question / Answer</th><th className="px-5 py-3">Retrieval</th><th className="px-5 py-3">Latency</th><th className="px-5 py-3">Status</th><th className="px-5 py-3">Quality</th></tr></thead><tbody className="divide-y divide-gray-800">{evaluations.map((item) => <tr key={item.id} className="align-top hover:bg-gray-900/50"><td className="whitespace-nowrap px-5 py-4 text-xs text-gray-400">{item.created_at}</td><td className="px-5 py-4 text-gray-300">{item.conversation_id ? `Chat #${item.conversation_id}` : "Unlinked"}<p className="mt-1 text-xs text-gray-500">Document #{item.document_id ?? "—"}</p></td><td className="max-w-xl px-5 py-4"><p className="font-medium text-gray-200">{item.question}</p>{item.answer && <p className="mt-2 line-clamp-3 whitespace-pre-wrap text-xs text-gray-400">{item.answer}</p>}{item.error_message && <p className="mt-2 text-xs text-red-300">{item.error_message}</p>}</td><td className="whitespace-nowrap px-5 py-4 text-gray-300">{item.retrieved_count} passages<p className="mt-1 text-xs text-gray-500">{item.citations?.length ?? 0} citations</p></td><td className="whitespace-nowrap px-5 py-4 text-gray-300">{formatDuration(item.latency_ms)}</td><td className="px-5 py-4"><span className={`rounded-full px-2 py-1 text-xs ${item.status === "completed" ? "bg-green-950 text-green-300" : "bg-red-950 text-red-300"}`}>{item.status}</span></td><td className="whitespace-nowrap px-5 py-4 text-xs text-amber-300">Not reviewed</td></tr>)}</tbody></table></div>}
-        </section>
+{loading ? (
+  <p className="p-8 text-center text-sm text-gray-400">
+    Loading evaluation records…
+  </p>
+) : evaluations.length === 0 ? (
+  <div className="p-10 text-center">
+    <FileSearch className="mx-auto mb-3 text-gray-600" size={32} />
+    <p className="font-medium text-gray-300">No evaluation records yet</p>
+    <p className="mt-1 text-sm text-gray-500">
+      Ask a question in Chat. New requests will appear here automatically.
+    </p>
+    <button
+      onClick={() => navigate("/chat")}
+      className="mt-4 rounded-lg bg-orange-500 px-4 py-2 text-sm font-medium hover:bg-orange-600"
+    >
+      Go to Chat
+    </button>
+  </div>
+) : (
+  <div className="overflow-x-auto">
+    <table className="w-full min-w-[900px] text-left text-sm">
+      <thead className="bg-gray-900 text-xs uppercase tracking-wide text-gray-500">
+        <tr>
+          <th className="px-5 py-3">Date</th>
+          <th className="px-5 py-3">Conversation</th>
+          <th className="px-5 py-3">Question / Answer</th>
+          <th className="px-5 py-3">Retrieval</th>
+          <th className="px-5 py-3">Latency</th>
+          <th className="px-5 py-3">Status</th>
+          <th className="px-5 py-3">Quality</th>
+        </tr>
+      </thead>
+
+      <tbody className="divide-y divide-gray-800">
+        {evaluations.map((item) => {
+          const document = documents.find(
+            (doc) => Number(doc.id) === Number(item.document_id)
+          );
+
+          return (
+            <tr
+              key={item.id}
+              className="align-top hover:bg-gray-900/50"
+            >
+              <td className="whitespace-nowrap px-5 py-4 text-xs text-gray-400">
+                {item.created_at}
+              </td>
+
+              <td className="px-5 py-4 text-gray-300">
+                {item.conversation_id
+                  ? `Chat #${item.conversation_id}`
+                  : "Unlinked"}
+
+                <p className="mt-1 text-xs text-gray-500">
+                  {item.document_id == null
+                    ? "No document linked"
+                    : document
+                      ? document.display_name ||
+                        `Document ${document.document_number}`
+                      : "Document deleted"}
+                </p>
+              </td>
+
+              <td className="max-w-xl px-5 py-4">
+                <p className="font-medium text-gray-200">
+                  {item.question}
+                </p>
+
+                {item.answer && (
+                  <p className="mt-2 line-clamp-3 whitespace-pre-wrap text-xs text-gray-400">
+                    {item.answer}
+                  </p>
+                )}
+
+                {item.error_message && (
+                  <p className="mt-2 text-xs text-red-300">
+                    {item.error_message}
+                  </p>
+                )}
+              </td>
+
+              <td className="whitespace-nowrap px-5 py-4 text-gray-300">
+                {item.retrieved_count} passages
+                <p className="mt-1 text-xs text-gray-500">
+                  {item.citations?.length ?? 0} citations
+                </p>
+              </td>
+
+              <td className="whitespace-nowrap px-5 py-4 text-gray-300">
+                {formatDuration(item.latency_ms)}
+              </td>
+
+              <td className="px-5 py-4">
+                <span
+                  className={`rounded-full px-2 py-1 text-xs ${
+                    item.status === "completed"
+                      ? "bg-green-950 text-green-300"
+                      : "bg-red-950 text-red-300"
+                  }`}
+                >
+                  {item.status}
+                </span>
+              </td>
+
+              <td className="whitespace-nowrap px-5 py-4 text-xs text-amber-300">
+                Not reviewed
+              </td>
+            </tr>
+          );
+        })}
+      </tbody>
+    </table>
+  </div>
+)}        </section>
       </main>
     </div>
   );
