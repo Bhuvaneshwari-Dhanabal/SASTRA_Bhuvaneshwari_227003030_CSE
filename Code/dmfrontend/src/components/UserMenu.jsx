@@ -41,8 +41,8 @@ function UserMenu({
       </button>
 
       {open && (
-        <div className="absolute bottom-12 right-0 w-56 rounded-xl border border-gray-700 bg-gray-900 p-2 shadow-xl">
-
+<div className="absolute right-0 top-full z-50 mt-2 w-56 rounded-xl border border-gray-700 bg-gray-900 p-2 shadow-xl">
+  
           <button
             onClick={() => {
               setOpen(false);
