@@ -11,4 +11,3 @@ The complete project source code and documentation are available in the ZIP arch
 2. Download the ZIP file from Google Drive.
 3. Extract the ZIP file to your computer to access the project files.
 
-**Note:** Ensure the Google Drive sharing permission is set to **Anyone with the link — Viewer** so others can access the archive.
