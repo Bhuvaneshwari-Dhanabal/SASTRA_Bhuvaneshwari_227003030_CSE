@@ -65,5 +65,7 @@ Input_Data/processed/*
 
 # Runtime audit logs
 Evaluation_Results/audit_logs/*
+Video/*.mp4
+
 "D:\SASTRA_Bhuvaneshwari_227003030_CSE\Video\AutoArch_AI_Demo_video2.mp4" 
 "C:\Users\achyu\Downloads\AUTOSAR_EXP_LayeredSoftwareArchitecture.pdf" 
