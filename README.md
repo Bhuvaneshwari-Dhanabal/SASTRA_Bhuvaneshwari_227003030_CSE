@@ -17,7 +17,7 @@ The system utilizes **Retrieval-Augmented Generation (RAG)** to provide grounded
 * **Support** architecture analysis and engineering knowledge reuse.
 * **Assist** engineers without replacing core human engineering decisions.
 
-## Planned Technologies
+## Technologies Used
 
 * **Language:** Python
 * **Core Architecture:** Retrieval-Augmented Generation (RAG)
